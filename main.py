@@ -11,88 +11,106 @@ client = replicate.Client(
     timeout=180.0
 )
 
+
+# ---------- LOAD PROMPTS ----------
 with open("prompt.json", "r") as f:
     PROMPTS = json.load(f)
 
 
-def run_model(prompt, image_paths):
-    uploaded = []
+# ---------- ASPECT RATIO MAPPING ----------
+def get_aspect_ratio(mode, submode):
+    if mode == "social":
+        if submode == "instagrampost":
+            return "1:1"
+        elif submode == "instagramstory":
+            return "9:16"
+        elif submode == "facebook":
+            return "1.91:1"
 
-    for path in image_paths:
-        with open(path, "rb") as f:
-            obj = replicate.files.create(f)
-            uploaded.append(obj.urls["get"])
-
-    output = client.run(
-        "black-forest-labs/flux-2-max",
-        input={
-            "prompt": prompt,
-            "input_images": uploaded,
-            "aspect_ratio": "1:1",
-            "output_format": "webp",
-            "output_quality": 100
-        }
-    )
-
-    if isinstance(output, list):
-        return output[0]
-
-    return str(output)
+    # default
+    return "1:1"
 
 
-def download(url, name):
-    urllib.request.urlretrieve(url, name)
-    return name
-
-
-def generate_image(mode, image_paths, submode=None):
-
-    results = []
-
-    # TRYON
+# ---------- PROMPT BUILDER ----------
+def get_prompt(mode, submode=None):
     if mode == "tryon":
         base = PROMPTS["tryon"]["prompt"]
 
-        style_map = {
-            "indian": PROMPTS["tryon"]["model_styles"]["indian_traditional"],
-            "western": PROMPTS["tryon"]["model_styles"]["western_modern"],
-            "bridal": PROMPTS["tryon"]["model_styles"]["bridal"]
-        }
+        # optional styling
+        if submode and submode in PROMPTS["tryon"].get("model_styles", {}):
+            style = PROMPTS["tryon"]["model_styles"][submode]
+            return base + "\n\n" + style
 
-        prompt = base + "\n\n" + style_map.get(submode, "")
+        return base
 
-        url = run_model(prompt, image_paths)
-        file = download(url, "output_tryon.webp")
-
-        return [file]
-
-    # REDESIGN (single variation)
     elif mode == "redesign":
-        base = PROMPTS["redesign"]["system_instruction"]
+        system = PROMPTS["redesign"]["system_instruction"]
+        variation = PROMPTS["redesign"].get(submode, "")
 
-        prompt = base + "\n\n" + PROMPTS["redesign"][submode]
+        return system + "\n\n" + variation
 
-        url = run_model(prompt, image_paths)
-        file = download(url, f"output_redesign_{submode}.webp")
-
-        return [file]
-
-    # SOCIAL
     elif mode == "social":
-        mapping = {
-            "post": "instagram_post",
-            "story": "instagram_story",
-            "fb": "facebook"
-        }
+        return PROMPTS["social"].get(submode, "")
 
-        key = mapping.get(submode, "instagram_post")
+    return ""
 
-        prompt = PROMPTS["social"][key]
 
-        url = run_model(prompt, image_paths)
-        file = download(url, "output_social.webp")
+# ---------- GENERATE ----------
+def generate_image(mode, image_paths, submode=None):
+    """
+    mode: tryon | redesign | social
+    submode: depends on mode
+    """
 
-        return [file]
+    prompt = get_prompt(mode, submode)
+    aspect_ratio = get_aspect_ratio(mode, submode)
 
+    uploaded_urls = []
+
+    # Upload images
+    for path in image_paths:
+        with open(path, "rb") as f:
+            file_obj = replicate.files.create(f)
+            uploaded_urls.append(file_obj.urls["get"])
+
+    outputs = []
+
+    # Redesign → generate 4 separate images
+    if mode == "redesign":
+        for key in ["A", "B", "C", "D"]:
+            var_prompt = get_prompt("redesign", key)
+
+            output = client.run(
+                "black-forest-labs/flux-2-max",
+                input={
+                    "prompt": var_prompt,
+                    "input_images": uploaded_urls,
+                    "aspect_ratio": "1:1",  # redesign always square
+                    "output_format": "webp",
+                    "output_quality": 90,
+                }
+            )
+
+            file_path = f"result_{key}.webp"
+            urllib.request.urlretrieve(str(output), file_path)
+            outputs.append(file_path)
+
+        return outputs
+
+    # TryOn / Social → single output
     else:
-        raise ValueError("Invalid mode")
+        output = client.run(
+            "black-forest-labs/flux-2-max",
+            input={
+                "prompt": prompt,
+                "input_images": uploaded_urls,
+                "aspect_ratio": aspect_ratio,  # 🔥 FIX HERE
+                "output_format": "webp",
+                "output_quality": 90,
+            }
+        )
+
+        file_path = "result.webp"
+        urllib.request.urlretrieve(str(output), file_path)
+
+        return [file_path]

@@ -55,9 +55,11 @@ def sub_menu(mode):
     elif mode == "social":
         return InlineKeyboardMarkup([
             [InlineKeyboardButton("📸 Instagram Post",
-                                  callback_data="social_post")],
-            [InlineKeyboardButton("📱 Story", callback_data="social_story")],
-            [InlineKeyboardButton("📰 Facebook", callback_data="social_fb")]
+                                  callback_data="social_instagrampost")],
+            [InlineKeyboardButton(
+                "📱 Story", callback_data="social_instagramstory")],
+            [InlineKeyboardButton(
+                "📰 Facebook", callback_data="social_facebook")]
         ])
 
 
@@ -123,6 +125,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         mode, sub = choice.split("_", 1)
 
         user_state[user_id] = {"mode": mode, "submode": sub}
+
         user_images[user_id] = []
 
         await query.message.reply_text(
