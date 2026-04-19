@@ -37,8 +37,8 @@ Upload one image → generate:
 ### 1. Clone repo
 
 ```bash
-git clone <your-repo>
-cd <your-repo>
+git clone Vaibhav-Manglani/OpenCode-Hackathon-2026---TryOnAI
+cd Vaibhav-Manglani/OpenCode-Hackathon-2026---TryOnAI
 ```
 
 ### 2. Install dependencies
