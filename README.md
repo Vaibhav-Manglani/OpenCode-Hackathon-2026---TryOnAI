@@ -1,4 +1,4 @@
-# TryOnAI Telegram Bot
+# VirtualTryOn Telegram Bot
 
 AI-powered Telegram bot that:
 
