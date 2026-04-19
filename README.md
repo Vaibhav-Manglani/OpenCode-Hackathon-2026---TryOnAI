@@ -1,7 +1,3 @@
-Here’s a clean, no-fluff README you can drop into your repo:
-
----
-
 # TryOnAI Telegram Bot
 
 AI-powered Telegram bot that:
