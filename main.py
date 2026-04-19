@@ -87,7 +87,7 @@ def generate_image(mode, image_paths, submode=None):
                     "input_images": uploaded_urls,
                     "aspect_ratio": "1:1",  # redesign always square
                     "output_format": "webp",
-                    "output_quality": 90,
+                    "output_quality": 100,
                 }
             )
 
@@ -106,7 +106,7 @@ def generate_image(mode, image_paths, submode=None):
                 "input_images": uploaded_urls,
                 "aspect_ratio": aspect_ratio,  # 🔥 FIX HERE
                 "output_format": "webp",
-                "output_quality": 90,
+                "output_quality": 100,
             }
         )
 
